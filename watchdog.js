@@ -135,6 +135,8 @@ async function injectUI() {
   }
 }
 
+const WATCHDOG_START = Date.now();
+let lastLaunch = 0;
 let busy = false;
 let lastState = '';
 let lastUiCheck = 0;
@@ -148,8 +150,7 @@ async function tick() {
     const portAlive = await cdpAlive();
     let isRunning = portAlive ? true : running();
     // 开机/登录后首次运行：主动带端口拉起 M HUB
-    const os = require('os');
-    const bootFresh = (Date.now() - os.uptime() * 1000) < 180000;
+    const bootFresh = (Date.now() - WATCHDOG_START) < 180000;
     if (!isRunning && bootFresh && !global.__bootStarted) {
       global.__bootStarted = true;
       log('开机启动：拉起 M HUB（壁纸模式）');
@@ -160,14 +161,16 @@ async function tick() {
     if (!isRunning && fs.existsSync(flagFile)) {
       try { fs.unlinkSync(flagFile); } catch (_) {}
       log('收到启动请求 → 启动 M HUB（壁纸模式）');
-      if (await launchAndWait(20000)) { await injectUI(); lastState = 'ok'; }
-      else { log('启动失败（已重试 3 次）'); }
+      if (await launchAndWait(20000)) {
+        lastLaunch = Date.now();
+        try { await injectUI(); lastState = 'ok'; } catch (e) { log('注入延迟重试: ' + e.message); }
+      } else { log('启动失败（已重试 3 次）'); }
       return;
     }
     const hasPort = portAlive;
     if (isRunning) { try { if (fs.existsSync(flagFile)) fs.unlinkSync(flagFile); } catch (_) {} }
 
-    if (isRunning && !hasPort) {
+    if (isRunning && !hasPort && Date.now() - lastLaunch > 10000) {
       if (lastState !== 'restart') log('发现 M HUB 无调试端口 → 重启为壁纸模式');
       lastState = 'restart';
       killAll();
@@ -179,8 +182,9 @@ async function tick() {
         await new Promise(r => setTimeout(r, 400));
       }
       if (await cdpAlive()) {
+        lastLaunch = Date.now();
         log('已带端口启动，注入选择器');
-        await injectUI();
+        try { await injectUI(); } catch (e) { log('注入重试: ' + e.message); }
         lastState = 'ok';
       }
     } else if (hasPort) {
