@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; }
+  #wp { position: fixed; inset: 0; }
+  #err {
+    position: fixed; left: 12px; bottom: 12px; right: 12px;
+    color: #ff9b9b; font: 12px/1.5 "Microsoft YaHei", sans-serif;
+    background: rgba(0,0,0,.55); padding: 8px 10px; border-radius: 8px;
+    display: none; white-space: pre-wrap; max-height: 40%; overflow: auto;
+  }
+</style>
+</head>
+<body>
+<div id="wp"></div>
+<div id="err"></div>
+<script src="/vendor/webwallgl/webwallgl.global.min.js"></script>
+<script>
+  (async function () {
+    const err = document.getElementById('err');
+    const report = (ev, msg) => {
+      fetch('/report?event=' + ev + '&id=' + id + (msg ? '&msg=' + encodeURIComponent(String(msg).slice(0, 300)) : ''));
+    };
+    const showErr = (m) => { err.style.display = 'block'; err.textContent += m + '\n'; };
+
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    report('page-load');
+    if (!id) { showErr('缺少 id'); report('scene-error', 'no-id'); return; }
+
+    try {
+      const API = window.WebWallGL;
+      if (!API || !API.mount) throw new Error('WebWallGL 未加载');
+      const wp = await API.mount(document.getElementById('wp'), {
+        source: API.httpSource('/wp/' + id + '/'),
+        volume: 0,
+      });
+      window.__wp = wp;
+      report('scene-ready');
+    } catch (e) {
+      const msg = (e && e.message) ? e.message : String(e);
+      showErr('渲染失败: ' + msg);
+      report('scene-error', msg);
+    }
+  })();
+</script>
+</body>
+</html>

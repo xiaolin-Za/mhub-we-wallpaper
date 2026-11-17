@@ -1,0 +1,21 @@
+# 运行时数据（含个人路径 / 缓存，不进仓库）
+config.json
+catalog.json
+last.json
+prefs.json
+hidden.json
+current.txt
+*.log
+.start
+server_try.log
+launcher_fix.log
+bat_out.log
+
+# 缓存与大文件
+cache/
+frames/
+wallpapers/*
+!wallpapers/README.txt
+
+# 旧版归档
+inject_ui_legacy.js

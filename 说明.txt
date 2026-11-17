@@ -1,0 +1,76 @@
+﻿M HUB 壁纸插件（可移植版）
+=================================
+
+一、它做什么
+把 Wallpaper Engine 的壁纸放到 M HUB 驱动的界面背景上：
+· 视频类壁纸（mp4/webm）直接播放
+· 场景类壁纸（scene.pkg）用内置 WebWallGL 在 M HUB 页面里实时渲染
+  （粒子、动画、鼠标视差都在，不再是循环视频；渲染失败会自动回退成烘焙视频）
+
+二、安装
+1. 解压到任意目录（建议非系统盘根目录）
+2. 右键 install.ps1 → 用 PowerShell 运行
+   或：powershell -ExecutionPolicy Bypass -File install.ps1
+3. 安装过程会：
+   · 自动探测 Edge / FFmpeg / Steam 创意工坊 / M HUB 路径，写入 config.json
+   · 在桌面创建三个快捷方式
+   · 询问是否创建开机守护任务（推荐是）
+
+三、日常使用
+· 开机 → 守护任务自动带调试端口启动 M HUB → 自动注入选择器 → 自动恢复上次壁纸
+· 你自己启动 M HUB → 守护检测到没有调试端口，会自动重启为壁纸模式（窗口会闪一下）
+· 换壁纸：右下角圆形按钮 / 托盘菜单
+· 删壁纸：每张卡片右上角都有 ✕，点一下变「确认」，再点一下移除
+  只从列表隐藏，不删创意工坊文件；设置里「已隐藏 N 个 → 恢复」可一键找回
+· 实时切换为双缓冲：新壁纸渲染好才替换旧的，不黑屏（实测 0.2-1.5 秒）
+· M HUB 的桌面/开始菜单快捷方式已改为走守护任务（带调试端口启动），
+  正常打开不会再有"重启一下"的闪动；原快捷方式备份为 .lnk.bak
+· 画面调整（每张壁纸单独保存，切回自动恢复）
+    画面：填充方式、缩放 50-200%、水平/垂直偏移
+    色彩：亮度、对比度、饱和度、色相、模糊、暗化
+    播放：速度 0.25-2×、静音、后台暂停开关
+· 性能（对标 Wallpaper Engine 的性能设置，设置侧栏最上方）
+    画质档位：极高 / 高 / 中 / 低 / 极低（一键，重新挂载生效）
+    抗锯齿：关 / FXAA / MSAA 2x / MSAA 4x（热生效）
+    粒子：高 / 中 / 低 / 关（热生效）
+    后处理：高 / 中 / 低 / 关（热生效）
+    帧率上限：不限 / 30 / 60 / 90 / 120
+    自动降档：低帧率时自动降后处理
+    视频纹理：自动 / 原始 / 半分辨率
+· 后台播放：设置 → 播放 → 后台时，可选「释放内存（省资源）」或「继续播放」；
+  回来立即恢复
+
+四、快捷方式
+· M HUB壁纸模式      提权启动 M HUB（带调试端口）并打开选择器
+· M HUB壁纸选择器    单独打开选择器
+· M HUB壁纸控制      托盘：切换、跟随 WE、重启 M HUB、Ctrl+Alt+W
+
+五、依赖（install.ps1 自动探测，探测失败可在 config.json 手改）
+· Node.js >= 22.12
+· Microsoft Edge 或 Chrome（渲染场景壁纸）
+· FFmpeg（编码）
+· Wallpaper Engine（壁纸来源）
+· M HUB 驱动
+
+六、config.json 关键字段
+ edgePath / ffmpegPath / mhubPath / workshopRoot / projectsRoot / port / cdpPort
+ bakeSeconds / bakeFps（烘焙时长与帧率）
+
+七、故障排查
+· 选择器打不开 / 提示找不到 M HUB 页面
+  → M HUB 没有以调试端口启动。以管理员运行 autostart.ps1，
+    或右键快捷方式「以管理员身份运行」
+· 背景空白
+  → 看 watchdog.log；选择器里点一张即可恢复
+  → 若上次壁纸的缓存被删了，插件会自动挑一张能播的
+· 场景壁纸一直“烘焙中”
+  → 检查 config.json 里 edgePath / ffmpegPath；看 bake_status.log
+· 想彻底撤掉
+  → 任务计划程序删除 MCHOSE_WE_Wallpaper，启用 MCHOSE_HUB_Launcher
+  → 删除桌面快捷方式和本目录
+
+八、日志
+ watchdog.log      守护行为（启动/重启/注入）
+ bake_status.log   场景烘焙过程
+ render.log        渲染页回报
+ tray.log          托盘
